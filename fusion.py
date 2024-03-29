@@ -1,11 +1,41 @@
+import pygame
+import os
 import random
 import time
 
-DINOS_PER_GENERATION = 10
-MIN_SPAWN_MILLIS = 500
-MAX_SPAWN_MILLIS = 1500
+pygame.init()
 
+# Global Constants
 millis = lambda: int(round(time.time() * 1000))
+
+DINOS_PER_GENERATION = 500
+MIN_SPAWN_MILLIS = 2500
+MAX_SPAWN_MILLIS = 5000
+
+DINOS_POR_GENERACION = 100
+SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 1100
+SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+RUNNING = [pygame.image.load(os.path.join("Assets/Dino", "DinoRun1.png")),
+           pygame.image.load(os.path.join("Assets/Dino", "DinoRun2.png"))]
+JUMPING = pygame.image.load(os.path.join("Assets/Dino", "DinoJump.png"))
+DUCKING = [pygame.image.load(os.path.join("Assets/Dino", "DinoDuck1.png")),
+           pygame.image.load(os.path.join("Assets/Dino", "DinoDuck2.png"))]
+
+SMALL_CACTUS = [pygame.image.load(os.path.join("Assets/Cactus", "SmallCactus1.png")),
+                pygame.image.load(os.path.join("Assets/Cactus", "SmallCactus2.png")),
+                pygame.image.load(os.path.join("Assets/Cactus", "SmallCactus3.png"))]
+LARGE_CACTUS = [pygame.image.load(os.path.join("Assets/Cactus", "LargeCactus1.png")),
+                pygame.image.load(os.path.join("Assets/Cactus", "LargeCactus2.png")),
+                pygame.image.load(os.path.join("Assets/Cactus", "LargeCactus3.png"))]
+
+BIRD = [pygame.image.load(os.path.join("Assets/Bird", "Bird1.png")),
+        pygame.image.load(os.path.join("Assets/Bird", "Bird2.png"))]
+
+CLOUD = pygame.image.load(os.path.join("Assets/Other", "Cloud.png"))
+
+BG = pygame.image.load(os.path.join("Assets/Other", "Track.png"))
 
 class Gen:
     def __init__(self):
@@ -49,28 +79,23 @@ class Genome:
         for _ in range(amount_of_crossovers):
             index = random.randint(0, self.length - 1)
             crossed_genome.genes[index] = another_genome.genes[index]
+        return crossed_genome
 
 
 class Brain:
-    def __init__(self, genomeObject):
+    def __init__(self, genome):
         self.inputs = []
         self.outputs = [1, 0]
         self.hidden_layer_weights = self.zeroes_matrix(7, 7)
         self.output_layer_weights = self.zeroes_matrix(2, 7)
-        for gen in genomeObject.genes:
+        for gen in genome.genes:
             if gen.source_hidden_layer:
                 self.hidden_layer_weights[gen.id_target_neuron][gen.id_source_neuron] = gen.weight
             else:
                 self.output_layer_weights[gen.id_target_neuron][gen.id_source_neuron] = gen.weight
-        self.hidden_layer_bias = genomeObject.hidden_layer_bias
-        self.output_layer_bias = genomeObject.output_layer_bias
+        self.hidden_layer_bias = genome.hidden_layer_bias
+        self.output_layer_bias = genome.output_layer_bias
         self.hidden_outputs = []
-    
-    def zeroes_matrix(self, rows, cols):
-        return [[0 for _ in range(cols)] for _ in range(rows)]
-
-    def matrix_vector_multiplication(self, matrix, vector):
-        return [sum(matrix[i][j] * vector[j] for j in range(len(vector))) for i in range(len(matrix))]
 
     def feed_forward(self, input_layer_values):
         self.inputs = input_layer_values
@@ -81,6 +106,12 @@ class Brain:
 
     def ReLU(self, x):
         return max(0, x)
+
+    def zeroes_matrix(self, rows, cols):
+        return [[0 for _ in range(cols)] for _ in range(rows)]
+
+    def matrix_vector_multiplication(self, matrix, vector):
+        return [sum(matrix[i][j] * vector[j] for j in range(len(vector))) for i in range(len(matrix))]
     
 
 class GameObject:
@@ -89,11 +120,13 @@ class GameObject:
         self.y_pos = 0
         self.obj_width = 0
         self.obj_height = 0
-        self.sprite = ""
-        self.sprite_offset = [0, 0]
+        self.image = ""
 
     def is_collisioning_with(self, anObject):
         return (self.x_pos + self.obj_width > anObject.x_pos and self.x_pos < anObject.x_pos + anObject.obj_width) and (self.y_pos + self.obj_height  > anObject.y_pos and self.y_pos < anObject.y_pos + anObject.obj_height)
+
+    def draw(self, SCREEN):
+        SCREEN.blit(self.image, (self.x_pos, self.y_pos))
 
 
 class Ground(GameObject):
@@ -101,7 +134,7 @@ class Ground(GameObject):
         super().__init__()
         self.x_pos = 2400
         self.y_pos = 515
-        self.sprite = "ground"
+        self.image = BG
 
     def update(self, speed):
         self.x_pos -= speed
@@ -112,6 +145,15 @@ class Ground(GameObject):
 class Dino(GameObject):
     def __init__(self):
         super().__init__()
+        self.duck_img = DUCKING
+        self.run_img = RUNNING
+        self.jump_img = JUMPING
+        # self.dino_duck = False
+        # self.dino_run = True
+        # self.dino_jump = False
+        self.image = self.run_img[0]
+        self.step_index = 0
+        self.dino_rect = self.image.get_rect()
         self.x_pos = random.randint(100, 300)
         self.y_pos = 450
         self.obj_width = 80
@@ -120,12 +162,9 @@ class Dino(GameObject):
         self.alive = True
         self.score = 0
         self.genome = Genome()
-        self.brain = None
-        self.brain_inputs = [0] * 7
-        self.init_brain()
-
-    def init_brain(self):
         self.brain = Brain(self.genome)
+        self.brain_inputs = [0] * 7
+
 
     def update(self, next_obstacle_info, speed):
         self.update_brain_inputs(next_obstacle_info, speed)
@@ -164,25 +203,30 @@ class Dino(GameObject):
 
     def jump(self):
         self.jump_stage = 0.0001
-        self.sprite = "standing_dino"
 
     def stop_jump(self):
         self.jump_stage = 0
         self.y_pos = 450
-        self.sprite = "walking_dino_1"
+        #self.image = self.run_img[self.step_index // 5]
+        # self.dino_rect = self.image.get_rect()
+        # self.step_index += 1
 
     def crouch(self):
         if not self.crouching():
             self.y_pos = 484
             self.obj_width = 110
             self.obj_height = 52
-            self.sprite = "crouching_dino_1"
+            #self.image = self.duck_img[self.step_index // 5]
+            # self.dino_rect = self.image.get_rect()
+            # self.step_index += 1
 
     def stop_crouch(self):
         self.y_pos = 450
         self.obj_width = 80
         self.obj_height = 86
-        self.sprite = "walking_dino_1"
+        #self.image = self.run_img[self.step_index // 5]
+        # self.dino_rect = self.image.get_rect()
+        # self.step_index += 1
 
     def jumping(self):
         return self.jump_stage > 0
@@ -193,7 +237,6 @@ class Dino(GameObject):
     def die(self, sim_score):
         self.alive = False
         self.score = sim_score
-        print("ESTOY RE DEAAAAAAAD")
 
     def reset(self):
         self.alive = True
@@ -216,31 +259,74 @@ class Cactus(Enemy):
     def __init__(self):
         super().__init__()
         self.type = random.randint(0, 5)
-        self.cactus_widths = [30, 64, 98, 46, 96, 146]
-        self.cactus_heights = [66, 66, 66, 96, 96, 96]
-        self.cactus_y_pos = [470, 470, 470, 444, 444, 444]
-        self.obj_width = self.cactus_widths[self.type]
-        self.obj_height = self.cactus_heights[self.type]
-        self.y_pos = self.cactus_y_pos[self.type]
-        self.sprite = "cactus_type_" + str(self.type + 1)
-        self.sprite_offset = [-2, -2]
+        if self.type == 0:
+            self.image = SMALL_CACTUS[0]
+            self.obj_width = 30
+            self.obj_height = 66
+            if random.randint(0,1) == 0:
+                self.y_pos = 444
+            else:
+                self.y_pos = 470            
+        if self.type == 1:
+            self.image = SMALL_CACTUS[1]
+            self.obj_width = 64
+            self.obj_height = 66
+            if random.randint(0,1) == 0:
+                self.y_pos = 444
+            else:
+                self.y_pos = 470
+        if self.type == 2:
+            self.image = SMALL_CACTUS[2]
+            self.obj_width = 98
+            self.obj_height = 66
+            if random.randint(0,1) == 0:
+                self.y_pos = 444
+            else:
+                self.y_pos = 470
+        if self.type == 3:
+            self.image = LARGE_CACTUS[0]
+            self.obj_width = 46
+            self.obj_height = 96
+            if random.randint(0,1) == 0:
+                self.y_pos = 444
+            else:
+                self.y_pos = 470
+        if self.type == 4:
+            self.image = LARGE_CACTUS[1]
+            self.obj_width = 96
+            self.obj_height = 96
+            if random.randint(0,1) == 0:
+                self.y_pos = 444
+            else:
+                self.y_pos = 470
+        if self.type == 5:
+            self.image = LARGE_CACTUS[2]
+            self.obj_width = 146
+            self.obj_height = 96
+            if random.randint(0,1) == 0:
+                self.y_pos = 444
+            else:
+                self.y_pos = 470
 
 
 class Bird(Enemy):
     def __init__(self):
         super().__init__()
-        self.birds_y_pos = [435, 480, 370]
+        self.type = random.randint(0, 1)
+        if self.type == 0:
+            self.image = BIRD[0]
+            self.y_pos = 100
+        else:
+            self.image = BIRD[1]
+            self.y_pos = 200
         self.obj_width = 84
         self.obj_height = 40
-        self.type = random.randint(0, 2)
-        self.y_pos = self.birds_y_pos[self.type]
-        self.sprite = "bird_flying_1"
-        self.sprite_offset = [-4, -16]
 
 
 class Simulation:
     def __init__(self):
         self.dinos = [Dino() for _ in range(DINOS_PER_GENERATION)]
+        self.dinos
         self.enemies = []
         self.speed = 15
         self.ground = Ground()
@@ -277,7 +363,7 @@ class Simulation:
                 if dino.alive and dino.is_collisioning_with(enemy):
                     dino.die(self.score)
                     #aca hice remover a los dinos pero hay que sacar esta linea
-                    self.dinos.remove(dino)
+                    #self.dinos.remove(dino)
             if dino.alive:
                 self.dinos_alive += 1
         if self.dinos_alive == 0:
@@ -296,75 +382,98 @@ class Simulation:
             self.enemies.append(Cactus())
         else:
             self.enemies.append(Bird())
+    
+    def print(self, SCREEN):
+        self.ground.draw(SCREEN)
+        for enemy in self.enemies:
+            enemy.draw(SCREEN)
+        for dino in self.dinos:
+            if dino.alive:
+                dino.draw(SCREEN)
 
     def next_generation(self):
-        print("Nueva generacion")
+        print("NUEVA GENERACION")
+        self.score = 0
+        self.generation += 1
+        self.speed = 15
+        self.enemies.clear()
+        dinos_score_sum = sum(dino.score for dino in self.dinos)
+        self.last_gen_avg_score = dinos_score_sum // DINOS_PER_GENERATION
+        self.dinos.sort(key=lambda x: x.score, reverse=True)
+        self.last_gen_max_score = self.dinos[0].score
+        # recoleccion de datos para posterior probar una teoria
+        datos_genes = []
+        for i in self.dinos[0].genome.genes:
+            dic = {}
+            dic["source_hidden_layer"] = i.source_hidden_layer
+            dic["id_source_neuron"] = i.id_source_neuron
+            dic["id_target_neuron"] = i.id_target_neuron
+            dic["weight"] = i.weight
+            datos_genes.append(dic)
+        datos_brain = {}
+        datos_brain["hidden_layer_weights"] = self.dinos[0].brain.hidden_layer_weights
+        datos_brain["output_layer_weights"] = self.dinos[0].brain.output_layer_weights
+        datos_brain["hidden_layer_bias"] = self.dinos[0].brain.hidden_layer_bias
+        datos_brain["output_layer_bias"] = self.dinos[0].brain.output_layer_bias
+        datos_genes.append(datos_brain)
+
+        new_dinos = []
+        new_dinos.extend(self.dinos[:int(DINOS_PER_GENERATION * 0.05)])
+        for _ in range(int(DINOS_PER_GENERATION * 0.05)):
+            new_dinos.append(Dino())
+        for _ in range(int(DINOS_PER_GENERATION * 0.3)):
+            father = self.dinos[0]
+            son = Dino()
+            son.genome = father.genome.mutate()
+            new_dinos.append(son)
+        for _ in range(int(DINOS_PER_GENERATION * 0.4)):
+            father = random.choice(self.dinos[:int(DINOS_PER_GENERATION * 0.05)])
+            son = Dino()
+            son.genome = father.genome.mutate()
+            new_dinos.append(son)
+        for _ in range(int(DINOS_PER_GENERATION * 0.2)):
+            father = random.choice(self.dinos[:int(DINOS_PER_GENERATION * 0.05)])
+            mother = random.choice(self.dinos[:int(DINOS_PER_GENERATION * 0.05)])
+            son = Dino()
+            son.genome = father.genome.crossover(mother.genome)
+            new_dinos.append(son)
+        self.dinos = new_dinos
+
+
+def setup():
+    global simulation
+    pygame.init()
+    pygame.display.set_mode((1280, 720))
+    simulation = Simulation()
+
+def draw():
+    screen.fill((247, 247, 247))
+    simulation.update()
+    simulation.print(SCREEN)
+    font = pygame.font.Font('freesansbold.ttf', 30)
+    score = font.render("Score: " + str(simulation.score), True, (0, 0, 0))
+    scoreRect = score.get_rect()
+    scoreRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 -200)
+    SCREEN.blit(score, scoreRect)
+    generacion = font.render("Generation: " + str(simulation.generation), True, (0, 0, 0))
+    geneRect = generacion.get_rect()
+    geneRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 250)
+    SCREEN.blit(generacion, geneRect)
+    maxscore = font.render("Max Score: " + str(simulation.last_gen_max_score), True, (0, 0, 0))
+    maxscoreRect = maxscore.get_rect()
+    maxscoreRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 150)
+    SCREEN.blit(maxscore, maxscoreRect)
 
 
 
-# dino = Dino()
-# cactus = Cactus()
-# for i in range(10):
-#     print(dino.x_pos, dino.y_pos, cactus.x_pos, cactus.y_pos)
-#     cactus.x_pos -= 200
-#     print(dino.is_collisioning_with(cactus))
-#     time.sleep(1)
+setup()
+screen = pygame.display.get_surface()
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    draw()
 
-# simu1 = Simulation()
-# for i in range(100):
-#     simu1.update()
-#     for dino in simu1.dinos:
-#         print(f"\ndino {simu1.dinos.index(dino)}")
-#         print("score: ", simu1.score)
-#         # print("inputs: ", dino.brain.inputs)
-#         print("OUTPUTS: ", dino.brain.outputs)
-#         print(f"jumping: {dino.jumping()} - crouching: {dino.crouching()}")
-#     time.sleep(2)
-
-
-        
-    # print("\nhidden_layer_weights: ", simu1.dinos[0].brain.hidden_layer_weights)
-    # print("\noutput_layer_weights: ", simu1.dinos[0].brain.output_layer_weights)
-    # print("\nhidden_layer_bias: ", simu1.dinos[0].brain.hidden_layer_bias)
-    # print("\noutput_layer_bias: ", simu1.dinos[0].brain.output_layer_bias)
-    # print("\nhidden_outputs: ", simu1.dinos[0].brain.hidden_outputs)
-
-    # print("simu1.speed: ", simu1.speed)
-    # print("simu1.gound: ", simu1.ground)
-    # print("simu1.score: ", simu1.score)
-    # print("simu1.generation: ", simu1.generation)
-    # print("simu1.last_gen_avg_score: ", simu1.last_gen_avg_score)
-    # print("simu1.last_gen_max_score: ", simu1.last_gen_max_score)
-    # print("simu1.dinos_alive: ", simu1.dinos_alive)
-    # print("simu1.last_spawn_time: ", simu1.last_spawn_time)
-    # print("simu1.time_to_spawn: ", simu1.time_to_spawn)
-    #time.sleep(5)
-
-
-
-# dino1  = Dino()
-# print(dino1.brain.inputs)
-# print(dino1.brain.outputs)
-# print(dino1.brain.hidden_outputs)
-# dino1.update([0,0,0,0,0], 15)
-# print(dino1.brain.inputs)
-# print(dino1.brain.outputs)
-# print(dino1.brain.hidden_outputs)
-
-    
-# genoma1 = Genome()
-# brian1 = Brain(genoma1)
-# print(brian1.hidden_layer_weights)
-# print(brian1.output_layer_weights)
-# print(brian1.inputs)
-# print(brian1.outputs)
-# print("hidden_layer_weights")
-# print(brian1.hidden_layer_weights)
-# print("output_layer_weights")
-# print(brian1.output_layer_weights)
-# print("hidden_layer_bias")
-# print(brian1.hidden_layer_bias)
-# print("output_layer_bias")
-# print(brian1.output_layer_bias)
-# print("hidden_outputs")
-# print(brian1.hidden_outputs)
+    pygame.display.flip()
+    pygame.time.Clock().tick(60)

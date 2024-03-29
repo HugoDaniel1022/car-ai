@@ -8,20 +8,16 @@ pygame.init()
 # Global Constants
 millis = lambda: int(round(time.time() * 1000))
 
-DINOS_PER_GENERATION = 500
+DINOS_PER_GENERATION = 20
 MIN_SPAWN_MILLIS = 2500
 MAX_SPAWN_MILLIS = 5000
 
-DINOS_POR_GENERACION = 100
 SCREEN_HEIGHT = 600
 SCREEN_WIDTH = 1100
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-RUNNING = [pygame.image.load(os.path.join("Assets/Dino", "DinoRun1.png")),
-           pygame.image.load(os.path.join("Assets/Dino", "DinoRun2.png"))]
-JUMPING = pygame.image.load(os.path.join("Assets/Dino", "DinoJump.png"))
-DUCKING = [pygame.image.load(os.path.join("Assets/Dino", "DinoDuck1.png")),
-           pygame.image.load(os.path.join("Assets/Dino", "DinoDuck2.png"))]
+RUNNING = pygame.image.load(os.path.join("Assets/Dino", "DinoRun1.png"))
+DUCKING = pygame.image.load(os.path.join("Assets/Dino", "DinoDuck1.png"))
 
 SMALL_CACTUS = [pygame.image.load(os.path.join("Assets/Cactus", "SmallCactus1.png")),
                 pygame.image.load(os.path.join("Assets/Cactus", "SmallCactus2.png")),
@@ -30,10 +26,8 @@ LARGE_CACTUS = [pygame.image.load(os.path.join("Assets/Cactus", "LargeCactus1.pn
                 pygame.image.load(os.path.join("Assets/Cactus", "LargeCactus2.png")),
                 pygame.image.load(os.path.join("Assets/Cactus", "LargeCactus3.png"))]
 
-BIRD = [pygame.image.load(os.path.join("Assets/Bird", "Bird1.png")),
-        pygame.image.load(os.path.join("Assets/Bird", "Bird2.png"))]
+BIRD = pygame.image.load(os.path.join("Assets/Bird", "Bird1.png"))
 
-CLOUD = pygame.image.load(os.path.join("Assets/Other", "Cloud.png"))
 
 BG = pygame.image.load(os.path.join("Assets/Other", "Track.png"))
 
@@ -132,7 +126,7 @@ class GameObject:
 class Ground(GameObject):
     def __init__(self):
         super().__init__()
-        self.x_pos = 2400
+        self.x_pos = 10
         self.y_pos = 515
         self.image = BG
 
@@ -147,11 +141,10 @@ class Dino(GameObject):
         super().__init__()
         self.duck_img = DUCKING
         self.run_img = RUNNING
-        self.jump_img = JUMPING
         # self.dino_duck = False
         # self.dino_run = True
         # self.dino_jump = False
-        self.image = self.run_img[0]
+        self.image = self.run_img
         self.step_index = 0
         self.dino_rect = self.image.get_rect()
         self.x_pos = random.randint(100, 300)
@@ -200,33 +193,24 @@ class Dino(GameObject):
                 self.stop_jump()
             self.crouch()
 
-
     def jump(self):
         self.jump_stage = 0.0001
 
     def stop_jump(self):
         self.jump_stage = 0
         self.y_pos = 450
-        #self.image = self.run_img[self.step_index // 5]
-        # self.dino_rect = self.image.get_rect()
-        # self.step_index += 1
 
     def crouch(self):
         if not self.crouching():
             self.y_pos = 484
             self.obj_width = 110
             self.obj_height = 52
-            #self.image = self.duck_img[self.step_index // 5]
-            # self.dino_rect = self.image.get_rect()
-            # self.step_index += 1
+            self.image = self.duck_img
 
     def stop_crouch(self):
         self.y_pos = 450
         self.obj_width = 80
         self.obj_height = 86
-        #self.image = self.run_img[self.step_index // 5]
-        # self.dino_rect = self.image.get_rect()
-        # self.step_index += 1
 
     def jumping(self):
         return self.jump_stage > 0
@@ -312,13 +296,16 @@ class Cactus(Enemy):
 class Bird(Enemy):
     def __init__(self):
         super().__init__()
-        self.type = random.randint(0, 1)
+        self.type = random.randint(0, 2)
         if self.type == 0:
-            self.image = BIRD[0]
-            self.y_pos = 100
+            self.image = BIRD
+            self.y_pos = 350
+        elif self.type == 1:
+            self.image = BIRD
+            self.y_pos = 400
         else:
-            self.image = BIRD[1]
-            self.y_pos = 200
+            self.image = BIRD
+            self.y_pos = 420
         self.obj_width = 84
         self.obj_height = 40
 
@@ -326,7 +313,7 @@ class Bird(Enemy):
 class Simulation:
     def __init__(self):
         self.dinos = [Dino() for _ in range(DINOS_PER_GENERATION)]
-        self.dinos
+        self.dinos2 = [Dino() for _ in range(DINOS_PER_GENERATION)]
         self.enemies = []
         self.speed = 15
         self.ground = Ground()
@@ -334,6 +321,8 @@ class Simulation:
         self.generation = 1
         self.last_gen_avg_score = 0
         self.last_gen_max_score = 0
+        self.last_gen_avg_score_sinIA = 0
+        self.last_gen_max_score_sinIA = 0
         self.dinos_alive = DINOS_PER_GENERATION
         self.last_spawn_time = millis()
         self.time_to_spawn = random.uniform(MIN_SPAWN_MILLIS, MAX_SPAWN_MILLIS)
@@ -341,7 +330,7 @@ class Simulation:
     def update(self):
         #coloco a mano contador de puntaje luego sacarlo
         self.score += 1
-        for dino in self.dinos:
+        for dino in self.dinos + self.dinos2:
             if dino.alive:
                 dino.update(self.next_obstacle_info(dino), int(self.speed))
         for enemy in self.enemies[:]:
@@ -358,7 +347,7 @@ class Simulation:
 
     def check_collisions(self):
         self.dinos_alive = 0
-        for dino in self.dinos:
+        for dino in self.dinos + self.dinos2:
             for enemy in self.enemies:
                 if dino.alive and dino.is_collisioning_with(enemy):
                     dino.die(self.score)
@@ -378,72 +367,104 @@ class Simulation:
         return result
     
     def spawn_enemy(self):
-        if random.random() < 0.5:
-            self.enemies.append(Cactus())
-        else:
-            self.enemies.append(Bird())
+        #if random.random() < 0.5:
+        self.enemies.append(Cactus())
+        # else:
+        #     self.enemies.append(Bird())
     
     def print(self, SCREEN):
-        self.ground.draw(SCREEN)
+        #self.ground.draw(SCREEN)
         for enemy in self.enemies:
             enemy.draw(SCREEN)
-        for dino in self.dinos:
+        for dino in self.dinos + self.dinos2:
             if dino.alive:
                 dino.draw(SCREEN)
 
     def next_generation(self):
-        print("NUEVA GENERACION")
         self.score = 0
         self.generation += 1
         self.speed = 15
         self.enemies.clear()
-        dinos_score_sum = sum(dino.score for dino in self.dinos)
-        self.last_gen_avg_score = dinos_score_sum // DINOS_PER_GENERATION
         self.dinos.sort(key=lambda x: x.score, reverse=True)
-        self.last_gen_max_score = self.dinos[0].score
-        # recoleccion de datos para posterior probar una teoria
-        datos_genes = []
-        for i in self.dinos[0].genome.genes:
-            dic = {}
-            dic["source_hidden_layer"] = i.source_hidden_layer
-            dic["id_source_neuron"] = i.id_source_neuron
-            dic["id_target_neuron"] = i.id_target_neuron
-            dic["weight"] = i.weight
-            datos_genes.append(dic)
-        datos_brain = {}
-        datos_brain["hidden_layer_weights"] = self.dinos[0].brain.hidden_layer_weights
-        datos_brain["output_layer_weights"] = self.dinos[0].brain.output_layer_weights
-        datos_brain["hidden_layer_bias"] = self.dinos[0].brain.hidden_layer_bias
-        datos_brain["output_layer_bias"] = self.dinos[0].brain.output_layer_bias
-        datos_genes.append(datos_brain)
+        self.dinos2.sort(key=lambda x: x.score, reverse=True)
+        dinos_score_sum = sum(dino.score for dino in self.dinos)
+        dinos2_score_sum = sum(dino.score for dino in self.dinos2)
+        if dinos2_score_sum // DINOS_PER_GENERATION > self.last_gen_avg_score_sinIA:
+            self.last_gen_avg_score_sinIA = dinos2_score_sum // DINOS_PER_GENERATION
+        if dinos_score_sum // DINOS_PER_GENERATION > self.last_gen_avg_score:
+            self.last_gen_avg_score = dinos_score_sum // DINOS_PER_GENERATION
+        if self.dinos2[0].score > self.last_gen_max_score_sinIA:
+                self.last_gen_max_score_sinIA = self.dinos2[0].score
+        if self.dinos[0].score > self.last_gen_max_score:
+                self.last_gen_max_score = self.dinos[0].score
 
-        new_dinos = []
-        new_dinos.extend(self.dinos[:int(DINOS_PER_GENERATION * 0.05)])
-        for _ in range(int(DINOS_PER_GENERATION * 0.05)):
-            new_dinos.append(Dino())
-        for _ in range(int(DINOS_PER_GENERATION * 0.3)):
-            father = self.dinos[0]
-            son = Dino()
-            son.genome = father.genome.mutate()
-            new_dinos.append(son)
-        for _ in range(int(DINOS_PER_GENERATION * 0.4)):
-            father = random.choice(self.dinos[:int(DINOS_PER_GENERATION * 0.05)])
-            son = Dino()
-            son.genome = father.genome.mutate()
-            new_dinos.append(son)
-        for _ in range(int(DINOS_PER_GENERATION * 0.2)):
-            father = random.choice(self.dinos[:int(DINOS_PER_GENERATION * 0.05)])
-            mother = random.choice(self.dinos[:int(DINOS_PER_GENERATION * 0.05)])
-            son = Dino()
-            son.genome = father.genome.crossover(mother.genome)
-            new_dinos.append(son)
-        self.dinos = new_dinos
+        if self.dinos2[0].score > self.dinos[0].score:
+            if self.dinos2[0].score > self.last_gen_max_score_sinIA:
+                if self.dinos2[0].score - self.dinos[0].score > self.last_gen_max_score:
+                    new_dinos = []
+                    new_dinos.extend(self.dinos[:int(DINOS_PER_GENERATION * 0.5)])
+                    for _ in range(DINOS_PER_GENERATION - len(new_dinos)):
+                        new_dinos.append(self.dinos2[0])
+                    self.dinos = new_dinos
+                else:
+                    self.dinos.pop(-1)
+                    self.dinos.insert(-1, self.dinos2[0])
+        else:
+            if self.dinos[0].score > self.last_gen_max_score:
+                if self.dinos[0].score > self.last_gen_max_score * 2:
+                    new_dinos = []
+                    for _ in range(len(self.dinos)):
+                        new_dinos.append(self.dinos[0])
+                        self.dinos = new_dinos
+                else:
+                    new_dinos = []
+                    new_dinos.extend(self.dinos[:1])
+                    father = self.dinos[0]
+                    mather = self.dinos[1]
+                    for _ in range(int(DINOS_PER_GENERATION * 0.3)):
+                        son = Dino()
+                        son.genome = father.genome.mutate()
+                        new_dinos.append(son)
+                    for _ in range(int(DINOS_PER_GENERATION * 0.3)):
+                        son = Dino()
+                        son.genome = mather.genome.mutate()
+                        new_dinos.append(son)
+                    for _ in range(int(DINOS_PER_GENERATION * 0.3)):
+                        son = Dino()
+                        son.genome = father.genome.crossover(mather.genome)
+                        new_dinos.append(son)
+                    for _ in range(DINOS_PER_GENERATION - len(new_dinos)):
+                        new_dinos.append(Dino())
+                    self.dinos = new_dinos
+        if dinos_score_sum // DINOS_PER_GENERATION > self.last_gen_avg_score:
+            new_dinos = []
+            for _ in range(int(DINOS_PER_GENERATION * 0.5)):
+                son = Dino()
+                father = random.choice(self.dinos)
+                mather = random.choice(self.dinos)
+                son.genome = father.genome.crossover(mather.genome)
+                new_dinos.append(son)
+            for _ in range(DINOS_PER_GENERATION - len(new_dinos)):
+                son = Dino()
+                son.genome = random.choice(self.dinos).genome.mutate()
+                new_dinos.append(son)
+        else:
+            for dino in self.dinos:
+                dino.genome.mutate()
+                dino.reset()
+        for dino in self.dinos2:
+            dino.reset()
+
+# simu1 = Simulation()
+# for i in range(50000):
+#     simu1.update()
+#     print(f"Generacion: {simu1.generation} - Vivos: {simu1.dinos_alive} - Score: {simu1.score} - MaxScore: {simu1.last_gen_max_score}")
 
 
 def setup():
     global simulation
     pygame.init()
-    pygame.display.set_mode((1280, 720))
+    pygame.display.set_mode((1100, 600))
     simulation = Simulation()
 
 def draw():
@@ -453,7 +474,7 @@ def draw():
     font = pygame.font.Font('freesansbold.ttf', 30)
     score = font.render("Score: " + str(simulation.score), True, (0, 0, 0))
     scoreRect = score.get_rect()
-    scoreRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 -200)
+    scoreRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 200)
     SCREEN.blit(score, scoreRect)
     generacion = font.render("Generation: " + str(simulation.generation), True, (0, 0, 0))
     geneRect = generacion.get_rect()
@@ -461,9 +482,28 @@ def draw():
     SCREEN.blit(generacion, geneRect)
     maxscore = font.render("Max Score: " + str(simulation.last_gen_max_score), True, (0, 0, 0))
     maxscoreRect = maxscore.get_rect()
-    maxscoreRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 150)
+    maxscoreRect.center = (SCREEN_WIDTH // 2 - 300, SCREEN_HEIGHT // 2 - 200)
     SCREEN.blit(maxscore, maxscoreRect)
-
+    dinosIA_vivos = font.render("Dinos IA Vivos: " + str(len([dino for dino in simulation.dinos if dino.alive])), True, (0, 0, 0))
+    dinosIA_vivosRect = dinosIA_vivos.get_rect()
+    dinosIA_vivosRect.center = (SCREEN_WIDTH // 2 - 300, SCREEN_HEIGHT // 2 - 250)
+    SCREEN.blit(dinosIA_vivos, dinosIA_vivosRect)
+    scoreProm = font.render("Score Prom: " + str(simulation.last_gen_avg_score), True, (0, 0, 0))
+    scorePromRect = scoreProm.get_rect()
+    scorePromRect.center = (SCREEN_WIDTH // 2 - 300, SCREEN_HEIGHT // 2 - 150)
+    SCREEN.blit(scoreProm, scorePromRect)
+    dinos_vivos = font.render("DinosSinIA Vivos: " + str(len([dino for dino in simulation.dinos2 if dino.alive])), True, (0, 0, 0))
+    dinos_vivosRect = dinos_vivos.get_rect()
+    dinos_vivosRect.center = (SCREEN_WIDTH // 2 + 300, SCREEN_HEIGHT // 2 - 250)
+    SCREEN.blit(dinos_vivos, dinos_vivosRect)
+    maxscore2 = font.render("Max Score: " + str(simulation.last_gen_max_score_sinIA), True, (0, 0, 0))
+    maxscore2Rect = maxscore2.get_rect()
+    maxscore2Rect.center = (SCREEN_WIDTH // 2 + 300, SCREEN_HEIGHT // 2 - 200)
+    SCREEN.blit(maxscore2, maxscore2Rect)
+    scoreProm2 = font.render("Score Prom: " + str(simulation.last_gen_avg_score_sinIA), True, (0, 0, 0))
+    scoreProm2Rect = scoreProm2.get_rect()
+    scoreProm2Rect.center = (SCREEN_WIDTH // 2 + 300, SCREEN_HEIGHT // 2 - 150)
+    SCREEN.blit(scoreProm2, scoreProm2Rect)
 
 
 setup()

@@ -20,7 +20,8 @@ class Genome:
         copy.output_layer_bias = self.output_layer_bias[:]
         return copy
 
-    # mediante una lista copiada de genes realizar mutaciones aleatorias entre 1 y 4. Lo que haces es cambiar de posicion los genes ya existentes entre 1 y 4 veces.
+    # mediante una lista copiada de genes realizar mutaciones aleatorias entre 1 y 4. Lo que haces es cambiar 
+    #de posicion los genes ya existentes entre 1 y 4 veces.
     def mutate(self):
         mutated_genome = self.copy()
         amount_of_mutations = random.randint(1, 4)
@@ -29,7 +30,8 @@ class Genome:
             mutated_genome.genes[index] = Gen()
         return mutated_genome
 
-    # intercambia elementos de una lista(genes) con los de otra lista(genes) que se la pasa por parametro y devuelve la lista intercambiaba o modificada.
+    # intercambia elementos de una lista(genes) con los de otra lista(genes) que se la pasa por parametro y 
+    #devuelve la lista intercambiaba o modificada.
     def crossover(self, another_genome):
         crossed_genome = self.copy()
         amount_of_crossovers = random.randint(1, 4)

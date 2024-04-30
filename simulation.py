@@ -8,7 +8,7 @@ from bird import Bird
 # funcion que devuelve el tiempo actual, se usa para respawnear a los enemigos
 millis = lambda: int(round(time.time() * 1000))
 # de aca se setea la cantidad de dinos por generacion (colocar siempre multiplos de 10)
-DINOS_PER_GENERATION = 100
+DINOS_PER_GENERATION = 50
 # tiempo minimo de respawneo
 MIN_SPAWN_MILLIS = 1500
 # tiempo maximo de respawneo
@@ -40,7 +40,10 @@ class Simulation:
         self.gen_progress = 0
         self.ultimo_dino_score = 0
 
-    # Actualiza la situacion del juego, hace correr el puntaje, actualiza a los dinos que estan vivos. Si hay enemigos les va actualizando la posicion en el eje x con respecto a la velocidad que tiene el juego. si el enemigo esta fuera de la pantalla lo remueve, tambien crea nuevos enemigos dependiendo de el tiempo de respawneo, verifica si hay colisiones y va acelerando la velocidad del juego.
+    # Actualiza la situacion del juego, hace correr el puntaje, actualiza a los dinos que estan vivos. 
+    #Si hay enemigos les va actualizando la posicion en el eje x con respecto a la velocidad que tiene el juego,
+    #si el enemigo esta fuera de la pantalla lo remueve, tambien crea nuevos enemigos dependiendo de el tiempo 
+    #de respawneo, verifica si hay colisiones y va acelerando la velocidad del juego.
     def update(self):
         self.score += 1
         for dino in self.dinos:
@@ -131,7 +134,8 @@ class Simulation:
                 break
         return result
     
-    # hace que aparezcan los enemigos en la pantalla, de momento para la prueba se fijan un total de 7 enemigos, y se vuelve a repetir el ciclo para saber si vedaderamente nuestro dino esta aprendiendo
+    # hace que aparezcan los enemigos en la pantalla, de momento para la prueba se fijan un total de 7 enemigos,
+    #y se vuelve a repetir el ciclo para saber si vedaderamente nuestro dino esta aprendiendo
     def spawn_enemy(self, cont):
         #lista para cambiar los patrones
         lista = [Cactus(0), Cactus(1), Bird(0), Cactus(1), Cactus(1), Bird(0), Bird(1)]
@@ -139,7 +143,9 @@ class Simulation:
         self.cont += 1
         if self.cont == len(lista):
             self.cont = 0
-    # chequea si hay colisiones entre el dino y alguno de los enemigos, si es asi elimina a los dinos que hayan chocado con algun objeto, cuando los dinos vivos sea = a 0, ejecuta la funcion next_generation()
+
+    # chequea si hay colisiones entre el dino y alguno de los enemigos, si es asi elimina a los dinos que 
+    #hayan chocado con algun objeto, cuando los dinos vivos sea = a 0, ejecuta la funcion next_generation()
     def check_collisions(self):
         self.dinos_alive = 0
         for dino in self.dinos:
@@ -152,7 +158,14 @@ class Simulation:
             self.cont = 0
             self.next_generation()
 
-    # crea una nueva generacion, al mismo tiempo resetea a valores originales el score y la velocidad, elimina a todos los enemigos, ordena a los dinos por puntaje y los deja preparados para el algoritmo genetico. Tambien va seteando algunos valores maximos que se van consiguiendo a medida que los dinos van evolucionando. La parte importante crea una lista nueva que sera la proxima generacion y luego rellena la misma con los primeros 5 ganadores, luego usa al dino que salio primero para mutarlo en cierta proporcion de muestras y en otro tanto los entrecruza con los genes del dino que salio 2, de esta manera se mantienen los genes ganadores y al mismo tiempo se consiguen mutaciones de los mismos y entrecruzamientos dejando una generacion en teoria mejor que la anterior. Este ciclo se repite la infinitamente.
+    # crea una nueva generacion, al mismo tiempo resetea a valores originales el score y la velocidad, elimina 
+    #a todos los enemigos, ordena a los dinos por puntaje y los deja preparados para el algoritmo genetico. 
+    #Tambien va seteando algunos valores maximos que se van consiguiendo a medida que los dinos van evolucionando. 
+    #La parte importante crea una lista nueva que sera la proxima generacion y luego rellena la misma con los 
+    #primeros 5 ganadores, luego usa al dino que salio primero para mutarlo en cierta proporcion de muestras y 
+    #en otro tanto los entrecruza con los genes del dino que salio 2, de esta manera se mantienen los genes 
+    #ganadores y al mismo tiempo se consiguen mutaciones de los mismos y entrecruzamientos dejando una 
+    #generacion en teoria mejor que la anterior. Este ciclo se repite la infinitamente.
     def next_generation(self):
         self.score = 0
         self.speed = 15

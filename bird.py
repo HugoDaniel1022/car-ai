@@ -10,6 +10,6 @@ class Bird(Enemy):
         if self.num == 0:
             self.y_pos = 380
         else:
-            self.y_pos = 435
+            self.y_pos = 430
         self.obj_width = 84
         self.obj_height = 40

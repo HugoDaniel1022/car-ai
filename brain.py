@@ -16,7 +16,11 @@ class Brain:
         self.output_layer_bias = genome.output_layer_bias
         self.hidden_outputs = []
     
-    # Partiendo de los datos de entrada (matriz 1x7), los multiplica por los pesos ocultos (matriz 7x7). Luego suma los bias ocultos correspondientes a los pesos anteriormente mencionados y aplica una funcion ReLU quedando una matrix de 1x7. Vuelve a repetir el ciclo, esta vez multiplicando por los pesos de salida (matriz de 2x7), suma los bias de salida correspondinetes a los pesos de salida y vuelve a aplicar ReLU, obteniendo asi una matriz de 1x2 que serian los valores de salida entre 0 y 1.
+    # Partiendo de los datos de entrada (matriz 1x7), los multiplica por los pesos ocultos (matriz 7x7). 
+    #Luego suma los bias ocultos correspondientes a los pesos anteriormente mencionados y aplica una 
+    #funcion ReLU quedando una matrix de 1x7. Vuelve a repetir el ciclo, esta vez multiplicando por los 
+    #pesos de salida (matriz de 2x7), suma los bias de salida correspondinetes a los pesos de salida y 
+    #vuelve a aplicar ReLU, obteniendo asi una matriz de 1x2 que serian los valores de salida entre 0 y 1.
     def feed_forward(self, input_layer_values): 
         self.inputs = input_layer_values
         self.hidden_outputs = self.matrix_vector_multiplication(self.hidden_layer_weights, input_layer_values)
@@ -39,11 +43,11 @@ class Brain:
     # cambia de colores las conexiones de la red neuronal
     def set_neural_connection_stroke(self, weight):
         if weight > 0:
-            return (0, 255, 0)
+            return (0, 250, 154)
         elif weight < 0:
-            return (255, 255, 0)
+            return (0, 240, 245)
         else:
-            return (0, 0, 0)
+            return (112, 128, 144)
         
     #imprime el grafico de las conexciones de la red neuronal
     def print_network(self, screen):

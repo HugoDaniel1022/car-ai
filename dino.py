@@ -11,7 +11,7 @@ class Dino(GameObject):
         Dino.ultimo_id += 1
         self.id = Dino.ultimo_id
         self.image = pygame.image.load(os.path.join("Assets/Dino", "DinoRun1.png"))
-        #se ata la variable del dino
+        # se fija la posicion en el eje x del dino
         self.x_pos = 100
         #self.x_pos = random.randint(100, 300)
         self.y_pos = 450

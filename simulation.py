@@ -1,8 +1,7 @@
 import time
 import pygame
-import random
+import random 
 from dino import Dino
-from cactus import Cactus
 from bird import Bird
 
 # funcion que devuelve el tiempo actual, se usa para respawnear a los enemigos
@@ -16,7 +15,7 @@ MAX_SPAWN_MILLIS = 2500
 
 # medidas de la pantalla
 SCREEN_HEIGHT = 600
-SCREEN_WIDTH = 1100
+SCREEN_WIDTH = 600
 
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
@@ -76,46 +75,46 @@ class Simulation:
  
         generacion = font.render("Generation: " + str(self.generation), True, (0, 0, 0))
         geneRect = generacion.get_rect()
-        geneRect.center = (SCREEN_WIDTH // 2 - 400, SCREEN_HEIGHT // 2 - 250)
+        geneRect.center = (SCREEN_WIDTH // 2 - 0, SCREEN_HEIGHT // 2 - 250)
         SCREEN.blit(generacion, geneRect)
 
-        dinos_vivos = font.render("Dinos Vivos: " + str(len([dino for dino in self.dinos if dino.alive])), True, (0, 0, 0))
+        dinos_vivos = font.render("Autos Vivos: " + str(len([dino for dino in self.dinos if dino.alive])), True, (0, 0, 0))
         dinos_vivosRect = dinos_vivos.get_rect()
-        dinos_vivosRect.center = (SCREEN_WIDTH // 2 - 400, SCREEN_HEIGHT // 2 - 200)
+        dinos_vivosRect.center = (SCREEN_WIDTH // 2 - 0, SCREEN_HEIGHT // 2 - 200)
         SCREEN.blit(dinos_vivos, dinos_vivosRect)
 
         score = font.render("Score: " + str(self.score), True, (0, 0, 0))
         scoreRect = score.get_rect()
-        scoreRect.center = (SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 - 100)
+        scoreRect.center = (SCREEN_WIDTH // 2 - 0, SCREEN_HEIGHT // 2 - 150)
         SCREEN.blit(score, scoreRect)
 
         maxscore = font.render("Max Score: " + str(self.last_gen_max_score), True, (0, 0, 0))
         maxscoreRect = maxscore.get_rect()
-        maxscoreRect.center = (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 150)
+        maxscoreRect.center = (SCREEN_WIDTH // 2 - 0, SCREEN_HEIGHT // 2 - 100)
         SCREEN.blit(maxscore, maxscoreRect)
 
-        avgscore = font.render("Max AVG: " + str(self.last_gen_avg_score), True, (0, 0, 0))
-        avgscoreRect = avgscore.get_rect()
-        avgscoreRect.center = (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 200)
-        SCREEN.blit(avgscore, avgscoreRect)
+        # avgscore = font.render("Max AVG: " + str(self.last_gen_avg_score), True, (0, 0, 0))
+        # avgscoreRect = avgscore.get_rect()
+        # avgscoreRect.center = (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 200)
+        # SCREEN.blit(avgscore, avgscoreRect)
 
-        ultimodino = font.render("Ult Dino Score: " + str(self.ultimo_dino_score), True, (0, 0, 0))
-        ultimodinoRect = ultimodino.get_rect()
-        ultimodinoRect.center = (SCREEN_WIDTH // 2 - 400, SCREEN_HEIGHT // 2 - 100)
-        SCREEN.blit(ultimodino, ultimodinoRect)
+        # ultimodino = font.render("Ult Auto Score: " + str(self.ultimo_dino_score), True, (0, 0, 0))
+        # ultimodinoRect = ultimodino.get_rect()
+        # ultimodinoRect.center = (SCREEN_WIDTH // 2 - 400, SCREEN_HEIGHT // 2 - 100)
+        # SCREEN.blit(ultimodino, ultimodinoRect)
 
-        ultimodinoProm = font.render("Ult Dino Prom: " + str(self.ultimo_dino_prom), True, (0, 0, 0))
-        ultimodinoPromRect = ultimodinoProm.get_rect()
-        ultimodinoPromRect.center = (SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 - 250)
-        SCREEN.blit(ultimodinoProm, ultimodinoPromRect)
+        # ultimodinoProm = font.render("Ult Auto Prom: " + str(self.ultimo_dino_prom), True, (0, 0, 0))
+        # ultimodinoPromRect = ultimodinoProm.get_rect()
+        # ultimodinoPromRect.center = (SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 - 250)
+        # SCREEN.blit(ultimodinoProm, ultimodinoPromRect)
 
 
         ult_gen_max = font.render("Ult Gen Max: " + str(self.gen_progress), True, (0, 0, 0))
         ult_gen_maxRect = ult_gen_max.get_rect()
-        ult_gen_maxRect.center = (SCREEN_WIDTH // 2 - 400, SCREEN_HEIGHT // 2 - 150)
+        ult_gen_maxRect.center = (SCREEN_WIDTH // 2 - 0, SCREEN_HEIGHT // 2 - 50)
         SCREEN.blit(ult_gen_max, ult_gen_maxRect)
 
-        self.print_network()
+        #self.print_network()
 
 
     # imprime la red neuronal de los dinos vivos
@@ -127,18 +126,19 @@ class Simulation:
 
     # obtiene las variables del ambiente para enviar los datos de entrada al cerebro del dino
     def next_obstacle_info(self, dino):
-        result = [1350, 0, 0, 0, 0]
+        result = [0, 0, 0, 0, 0]
         for enemy in self.enemies:
-            if enemy.x_pos > dino.x_pos:
-                result = [enemy.x_pos - dino.x_pos, enemy.x_pos, enemy.y_pos, enemy.obj_width, enemy.obj_height]
+            if enemy.y_pos < dino.y_pos:
+                result = [dino.y_pos - enemy.y_pos, enemy.y_pos, enemy.x_pos, enemy.obj_width, enemy.obj_height]
                 break
+        print(result)
         return result
     
     # hace que aparezcan los enemigos en la pantalla, de momento para la prueba se fijan un total de 7 enemigos,
     #y se vuelve a repetir el ciclo para saber si vedaderamente nuestro dino esta aprendiendo
     def spawn_enemy(self, cont):
         #lista para cambiar los patrones
-        lista = [Cactus(0), Cactus(1), Bird(0), Cactus(1), Cactus(1), Bird(0), Bird(1)]
+        lista = [Bird(0), Bird(2), Bird(1)]
         self.enemies.append(lista[cont])
         self.cont += 1
         if self.cont == len(lista):
@@ -182,6 +182,8 @@ class Simulation:
             self.last_gen_avg_score = dinos_score_sum // DINOS_PER_GENERATION
         if self.dinos[0].score > self.last_gen_max_score:
             self.last_gen_max_score = self.dinos[0].score
+        # for dino in self.dinos:
+        #     dino.reset()
         new_dinos = []
         new_dinos.extend(self.dinos[:5])
         for dino in new_dinos:
